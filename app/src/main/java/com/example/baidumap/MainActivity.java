@@ -19,6 +19,7 @@ import com.baidu.mapapi.map.BaiduMap;
 import com.baidu.mapapi.map.MapStatusUpdate;
 import com.baidu.mapapi.map.MapStatusUpdateFactory;
 import com.baidu.mapapi.map.MapView;
+import com.baidu.mapapi.map.MyLocationData;
 import com.baidu.mapapi.model.LatLng;
 
 import java.util.ArrayList;
@@ -40,50 +41,19 @@ public class MainActivity extends AppCompatActivity {
         SDKInitializer.initialize(getApplicationContext());//初始化
 
         setContentView(R.layout.activity_main);
-        ApplyPower();
+        ApplyPower();//获取权限
 
         positionText=(TextView)findViewById(R.id.text);
         mapView=(MapView)findViewById(R.id.bmapView) ;
         baiduMap=mapView.getMap();
-        baiduMap.setMyLocationEnabled(true);
-
-
+        baiduMap.setMyLocationEnabled(true);//一定要打开，不然不显示位置
     }
 
-    private void navigateTo(BDLocation bdLocation){
-        if(isFirstLocate){
-            LatLng ll=new LatLng(bdLocation.getLatitude(),bdLocation.getLongitude());
-            MapStatusUpdate update= MapStatusUpdateFactory.newLatLng(ll);
-            baiduMap.animateMapStatus(update);
-            update=MapStatusUpdateFactory.zoomTo(16f);
-            baiduMap.animateMapStatus(update);
-            isFirstLocate=false;
-        }
-    }
-
-    private void ApplyPower(){ //申请权限
-        List<String> permissionList=new ArrayList<>();
-        if(ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED){
-            permissionList.add(Manifest.permission.ACCESS_FINE_LOCATION);
-        }
-        if(ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_PHONE_STATE)!=PackageManager.PERMISSION_GRANTED){
-            permissionList.add(Manifest.permission.READ_PHONE_STATE);
-        }
-        if(ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE)!=PackageManager.PERMISSION_GRANTED){
-            permissionList.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
-        }
-        if(!permissionList.isEmpty()){
-            String[] permissions=permissionList.toArray(new String[permissionList.size()]);
-            ActivityCompat.requestPermissions(MainActivity.this,permissions,1);
-        }
-        else{
-            requestLocation();
-        }
-    }
     private void requestLocation(){
-        initLocation();
+        initLocation();//初始化位置信息
         mLocationClient.start();
     }
+
     private void initLocation(){
         LocationClientOption option=new LocationClientOption();
         option.setLocationMode(LocationClientOption.LocationMode.Device_Sensors);//修改定位模式
@@ -116,6 +86,41 @@ public class MainActivity extends AppCompatActivity {
 //            positionText.setText(currentPosition.toString());
         }
     }
+    private void navigateTo(BDLocation bdLocation){
+        if(isFirstLocate){
+            LatLng ll=new LatLng(bdLocation.getLatitude(),bdLocation.getLongitude());
+            MapStatusUpdate update= MapStatusUpdateFactory.newLatLng(ll);//地图状态更新工厂
+            baiduMap.animateMapStatus(update);//地图状态更新
+            update=MapStatusUpdateFactory.zoomTo(16f);//设置缩放级别
+            baiduMap.animateMapStatus(update);//地图状态更新
+            isFirstLocate=false;
+        }
+        MyLocationData.Builder builder=new MyLocationData.Builder();
+        builder.latitude(bdLocation.getLatitude());
+        builder.longitude(bdLocation.getLongitude());
+        MyLocationData locationData=builder.build();
+        baiduMap.setMyLocationData(locationData);
+    }
+
+    private void ApplyPower(){ //申请权限
+        List<String> permissionList=new ArrayList<>();
+        if(ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED){
+            permissionList.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        }
+        if(ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_PHONE_STATE)!=PackageManager.PERMISSION_GRANTED){
+            permissionList.add(Manifest.permission.READ_PHONE_STATE);
+        }
+        if(ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE)!=PackageManager.PERMISSION_GRANTED){
+            permissionList.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        }
+        if(!permissionList.isEmpty()){
+            String[] permissions=permissionList.toArray(new String[permissionList.size()]);
+            ActivityCompat.requestPermissions(MainActivity.this,permissions,1);
+        }
+        else{
+            requestLocation();//请求位置
+        }
+    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -139,6 +144,7 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         mLocationClient.stop();
         mapView.onDestroy();
+        baiduMap.setMyLocationEnabled(false);
     }
 
     @Override
